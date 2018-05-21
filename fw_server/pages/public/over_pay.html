@@ -1,0 +1,41 @@
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<style>
+.center{text-align:center;}
+</style>
+<body>
+	<script type="text/javascript">
+		function urlParse(){
+			var params = {};
+			if(window.location == null){
+				return params;
+			}
+			var name,value; 
+			var str=window.location.href; //取得整个地址栏
+			var num=str.indexOf("?") 
+			str=str.substr(num+1); //取得所有参数   stringvar.substr(start [, length ]
+
+			var arr=str.split("&"); //各个参数放到数组里
+			for(var i=0;i < arr.length;i++){ 
+				num=arr[i].indexOf("="); 
+				if(num>0){ 
+					name=arr[i].substring(0,num);
+					value=arr[i].substr(num+1);
+					params[name]=value;
+				} 
+			}
+			return params;
+		}
+
+		var params = urlParse();
+		document.writeln('<div class=center><h2>充值成功!</h2></div>');
+		document.writeln('<div><h3>' + '支付金额：' + params.ovalue + '</h3></div>');
+		document.writeln('<div><h3>' + '充值账单号：' + params.orderid + '</h3></div>');
+		document.writeln('<div><h3>' + '商户流水号：' + params.sysorderid + '</h3></div>');
+		document.writeln('<div><h4><font color="#FF0000">' + '注：关闭窗口后，数据会刷新' + '</font></h3></div>');
+		//document.write(window.location.href);
+	</script>
+</body>
+</html>
