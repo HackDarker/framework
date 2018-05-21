@@ -9,7 +9,7 @@ cc.Class({
         // _next: -1,//在数组中的后一个位置
         _ballname: '',//显示的名字
         _number: 0,//显示的数字
-        speed: 1
+        speed: 3
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -46,42 +46,49 @@ cc.Class({
         // this._deltaAngle = utils.getdeltaAngleBetweenPoints(this._radius, this.node.position, position);
         this._startAngle = utils.getAngleWithTouchPoint(this.node.position);
         this._endAngle = utils.getAngleWithTouchPoint(position);
-        // console.log(`小球：${this._ballname} id:${this._instanceid} 准备移动`);
-        // console.log(`开始角度:${this._startAngle}   目标角度:${this._endAngle}`)
         // console.log(`开始位置:${this.node.position}   目标位置:${position}`)
-        // console.log(`------------------------------------------------`)
+        console.log(`------------------------------------------------`)
+        this._startAngle = Math.floor(this._startAngle);
+        this._endAngle = Math.floor(this._endAngle);
+        console.log(`小球：${this._ballname} id:${this._instanceid} 准备移动`);
+        console.log(`开始角度:${this._startAngle}   目标角度:${this._endAngle}`)
 
         this._PI = 0
         if (this._startAngle < this._endAngle) {
             if (Math.abs(this._endAngle - this._startAngle) > 180) {
-                this._offset = -1 * this.speed
+                this._offset = -1
                 this._PI = 360
             } else {
-                this._offset = 1 * this.speed
+                this._offset = 1
             }
         } else if (this._startAngle > this._endAngle) {
             if (Math.abs(this._endAngle - this._startAngle) > 180) {
-                this._offset = 1 * this.speed
+                this._offset = 1
                 this._PI = 360
             } else {
-                this._offset = -1 * this.speed
+                this._offset = -1
             }
         } else {
             // console.log('角度相同不位移');
         }
-        // console.log(`小球：${this._ballname} id: ${this._instanceid} 当前位置：${this.node.position} 当前角度：${this._startAngle}`);
-        // console.log(`位移方向：${this._offset} 外加角度: ${this._PI}`);
+        this.area = [];
+        this.area[0] = Math.floor(this._endAngle) + this._offset * this._PI - this.speed
+        this.area[1] = Math.floor(this._endAngle) + this._offset * this._PI + this.speed
+        this._offset *= this.speed
+        console.log(`区间：${this.area} `);
+        console.log(`当前位置：${this.node.position} `);
+        console.log(`位移方向：${this._offset} 外加角度: ${this._PI}`);
+
     },
 
     update(dt) {
         if (!this._isMoving) { return }
-
-        if (Math.floor(this._endAngle) + this._offset * this._PI == Math.floor(this._startAngle)) {
-            // console.log(`小球：${this._ballname} id: ${this._instanceid} 已到达位置: ${this.node.position}`)
+        console.log(`小球：${this._ballname} id: ${this._instanceid} 当前角度: ${this._startAngle}`)
+        if (this.area[0] <= Math.floor(this._startAngle) && this.area[1] >= Math.floor(this._startAngle)) {
+            console.log(`小球：${this._ballname} id: ${this._instanceid} 已到达位置: ${this.node.position}`)
             this._isMoving = false
         }
         this._startAngle += this._offset;
-
         let pos = utils.getPointWithAngle(this._startAngle, this._radius)
         // console.log(`小球：${this._ballname} id: ${this._instanceid} 当前位置：${pos} 当前角度：${this._startAngle}`);
         this.node.position = pos

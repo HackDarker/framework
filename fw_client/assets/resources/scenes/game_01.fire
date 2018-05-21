@@ -463,7 +463,9 @@
       "__id__": 6
     },
     "_canCreateBall": false,
-    "_radius": 300
+    "_radius": 300,
+    "initNumber": 14,
+    "_initBalls": 6
   },
   {
     "__type__": "cc.Graphics",

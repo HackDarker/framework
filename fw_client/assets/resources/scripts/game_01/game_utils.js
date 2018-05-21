@@ -150,17 +150,17 @@ utils.getNotNullOfArray = function (array) {
  * @param {*} pointB 
  */
 utils.getdeltaAngleBetweenPoints = function (radius, pointA, pointB) {
-    console.log(`半径：${radius}  A点：${pointA}  B点：${pointB}`)
+    // console.log(`半径：${radius}  A点：${pointA}  B点：${pointB}`)
     let angleA = utils.getAngleWithTouchPoint(pointA);
     let angleB = utils.getAngleWithTouchPoint(pointB);
 
-    console.log(`圆心角：${Math.abs(angleA - angleB)}`)
+    // console.log(`圆心角：${Math.abs(angleA - angleB)}`)
     return Math.abs(angleA - angleB)
 }
 
 utils.getCenterPoint = function (pointA, pointB, radius) {
     let centerpoint = cc.v2((pointA.x + pointB.x) / 2, (pointA.y + pointB.y) / 2)
-    console.log('centerpoint', centerpoint);
+    // console.log('centerpoint', centerpoint);
     return utils.getPositionWithTouchPoint(centerpoint, radius);
 }
 

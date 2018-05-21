@@ -33,7 +33,7 @@ cc.Class({
         Graphics: cc.Node,
         _canCreateBall: false,//生成小球控制器
         _radius: 300,
-        _initNumber: 10,
+        initNumber: 15,
         _initBalls: 6
     },
 
@@ -44,7 +44,7 @@ cc.Class({
     start() {
         this.drawCircle();
         this._ballpool = new cc.NodePool('ball');
-
+        console.log('this.initNumber', this.initNumber);
         this.initTouchHandler();
         this.gameBegin();
 
@@ -53,7 +53,7 @@ cc.Class({
     gameBegin: function () {
         this.ballRoot.removeAllChildren();
         this._count = 0;
-        this.balllist = new Array(this._initNumber);
+        this.balllist = new Array(this.initNumber);
         this.tempball = null;
         this.canTouch = true;
         for (let index = 0; index < this._initBalls; index++) {
@@ -252,7 +252,7 @@ cc.Class({
                 }
                 idx++;
             });
-            // console.log('离得最近的小球：', tempObj)
+            console.log('离得最近的小球：', tempObj)
             if (touchAngle >= tempObj.angle) {
                 insertIdx = tempObj.index + 1;
             } else {
@@ -260,7 +260,7 @@ cc.Class({
             }
             // console.log(`------------------点击点角度：${touchAngle}`);
         }
-        // console.log('插入点：', insertIdx);
+        console.log('插入点：', insertIdx);
         return insertIdx;
     },
 
@@ -289,7 +289,7 @@ cc.Class({
         }
         this._count++
         ball.position = cc.p({ x: 0, y: 0 });
-        ball.scale = 0.7
+        ball.scale = 0.5
 
         let ballscript = ball.getComponent('ball')
 
