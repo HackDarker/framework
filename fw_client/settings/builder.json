@@ -1,0 +1,33 @@
+{
+  "appKey": "",
+  "appSecret": "",
+  "encryptJs": true,
+  "excludeScenes": [],
+  "includeAnySDK": false,
+  "includeSDKBox": false,
+  "inlineSpriteFrames": true,
+  "inlineSpriteFrames_native": true,
+  "jailbreakPlatform": false,
+  "md5Cache": false,
+  "mergeStartScene": false,
+  "oauthLoginServer": "",
+  "optimizeHotUpdate": false,
+  "orientation": {
+    "landscapeLeft": false,
+    "landscapeRight": false,
+    "portrait": false,
+    "upsideDown": true
+  },
+  "packageName": "org.cocos2d.fw_client",
+  "privateKey": "",
+  "renderMode": "0",
+  "startScene": "cd7f1a41-fd70-4ecd-8240-03be6b77f4ce",
+  "title": "StarWar",
+  "webOrientation": "auto",
+  "wechatgame": {
+    "appid": "wx6ac3f5090a6b99c5",
+    "orientation": "portrait"
+  },
+  "xxteaKey": "75848ab6-73c7-48",
+  "zipCompressJs": true
+}

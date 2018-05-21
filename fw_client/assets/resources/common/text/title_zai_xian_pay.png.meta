@@ -1,0 +1,30 @@
+{
+  "ver": "1.0.0",
+  "uuid": "2f3460c6-9383-430b-95f3-532ca995852f",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "subMetas": {
+    "title_zai_xian_pay": {
+      "ver": "1.0.3",
+      "uuid": "55bdb4e4-443b-4b1e-b8e4-6afe3e72813c",
+      "rawTextureUuid": "2f3460c6-9383-430b-95f3-532ca995852f",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0,
+      "offsetY": 0,
+      "trimX": 0,
+      "trimY": 0,
+      "width": 156,
+      "height": 41,
+      "rawWidth": 156,
+      "rawHeight": 41,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}
