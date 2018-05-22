@@ -52,6 +52,8 @@ cc.Class({
     //游戏开始 初始化游戏
     gameBegin: function () {
         this.ballRoot.removeAllChildren();
+        this.center.removeAllChildren();
+        this._gameOver = false;
         this._count = 0;
         this.balllist = new Array(this.initNumber);
         this.tempball = null;
@@ -86,18 +88,19 @@ cc.Class({
      * @param {*} tag 
      * @param {*} targetindex 
      */
-    refreshBallPosition(targetindex) {
+    refreshBallPosition(targetindex, TouchAngle) {
         let count = utils.getNotNullOfArray(this.balllist);
-        let points = utils.getPointsBaseTouchPoint(this.balllist, targetindex, this._radius);
-        // console.log('balllist内小球个数：', count);
-        // console.log('points对应小球位置：', points);
+        let points = utils.getPointsBaseTouchAngle(this.balllist, targetindex, TouchAngle, this._radius, this._gameOver);
+        // let points = utils.getPointsBaseTouchPoint(this.balllist, targetindex, this._radius);
+        console.log('balllist内小球个数：', count);
+        console.log('points对应小球位置：', points);
         for (let index = 0; index < count.length; index++) {
             const element = count[index];
-            if (element) {
+            if (element && element._index != targetindex || this._gameOver) {//游戏结束前 target 单独运动 结束时一起调用move方法  因为此时的target为原来的节点 没有被替换掉
                 element.move(this._radius, points[index].pos)
             }
         }
-        this._canCreateBall = true;
+        // this._canCreateBall = true;
     },
     /**
      * 检查是否有可以合并的小球
@@ -167,32 +170,37 @@ cc.Class({
             position = self.getCenterPoint(position);
             console.log('触摸点转换后圆上坐标：', position)
             self.tempball.node.parent = self.ballRoot;//将小球挂载到球列表
-            console.log('原始数组', self.balllist)
+            // console.log('原始数组', self.balllist)
             let insertIndex = self.getInsertIndex(position);
             console.log('小球插入位置', insertIndex)
-            if (insertIndex != -1) {
+            if (!self._gameOver) {
                 self.insertBall(insertIndex, self.tempball);
             }
-            console.log('添加新球后数组', self.balllist)
+            // console.log('添加新球后数组', self.balllist)
             let ballCount = utils.getNotNullOfArray(self.balllist).length
 
             self.canTouch = false;
             self.tempball.node.runAction(
                 cc.sequence(
-                    cc.moveTo(1, position),
+                    cc.moveTo(0.5, position),
                     cc.callFunc(() => {
-                        if (ballCount == self.balllist.length && insertIndex == -1) {
+                        self.tempball = null;
+                        if (!self._gameOver) {
+                            self._canCreateBall = true;
+                        }
+                        if (self._gameOver) {
                             self._canCreateBall = false;
                             gc.alert.showUI('游戏结束，进入下一局', () => {
                                 self.gameBegin();
                             });
                             return;
                         }
-                        self.tempball = null;
-                        self.refreshBallPosition(insertIndex);
                     })
                 )
             );
+            let touchAngle = utils.getAngleWithTouchPoint(position)
+            self.refreshBallPosition(insertIndex, touchAngle);
+
         }, this.Graphics);
         // this.Graphics.on(cc.Node.EventType.TOUCH_CANCEL, function (event) {
         //     var touches = event.getTouches();
@@ -215,7 +223,7 @@ cc.Class({
      * 根据触摸点获取所在扇形的中点
      */
     getCenterPoint: function (position) {
-        let insertIndex = this.getInsertIndex(position, true);
+        let insertIndex = this.getInsertIndex(position);
         let array = utils.getNotNullOfArray(this.balllist)
         let length = array.length
         let pointA = array[insertIndex] ? array[insertIndex].node.position : array[0].node.position
@@ -227,22 +235,23 @@ cc.Class({
     },
 
 
-    getInsertIndex: function (position, yes) {
+    getInsertIndex: function (position) {
         let touchAngle = utils.getAngleWithTouchPoint(position);
         let insertIdx = -1;
-        if (utils.getNotNullOfArray(this.balllist).length != this.balllist.length || yes) {
-            // console.log(`------------------点击点角度：${touchAngle}`);
 
-            let tempAngle = 10000;
-            let tempObj = {};//离得最近的小球的索引
-            var idx = 0;
-            this.balllist.forEach(element => {
-                let angle = utils.getAngleWithTouchPoint(element.node.position);
+        // console.log(`------------------点击点角度：${touchAngle}`);
+
+        let tempAngle = 10000;
+        let tempObj = {};//离得最近的小球的索引
+        var idx = 0;
+        this.balllist.forEach(element => {
+            let angle = utils.getAngleWithTouchPoint(element.node.position);
+            if (angle) {
                 let delta = Math.abs(angle - touchAngle);
-                // console.log('idx', idx);
-                // console.log('delta:', delta);
+                // console.log('第几个：', idx);
+                // console.log('距离角度delta:', delta);
                 if (tempAngle > delta) {
-                    // console.log('tempAngle:', tempAngle);
+                    // console.log('存储最小角:', tempAngle);
                     tempAngle = delta;
                     tempObj = {
                         angle: angle,
@@ -250,15 +259,21 @@ cc.Class({
                     }
                     // console.log('tempObj:' + idx, tempObj);
                 }
-                idx++;
-            });
-            console.log('离得最近的小球：', tempObj)
-            if (touchAngle >= tempObj.angle) {
-                insertIdx = tempObj.index + 1;
             } else {
-                insertIdx = tempObj.index
+                console.log('为空idx:' + idx, angle);
             }
-            // console.log(`------------------点击点角度：${touchAngle}`);
+            idx++;
+        });
+        // console.log('离得最近的小球：', tempObj)
+        if (touchAngle >= tempObj.angle) {
+            insertIdx = tempObj.index + 1;
+        } else {
+            insertIdx = tempObj.index
+        }
+        // console.log(`------------------点击点角度：${touchAngle}`);
+        if (utils.getNotNullOfArray(this.balllist).length == this.balllist.length) {
+            console.log('游戏结束');
+            this._gameOver = true;
         }
         console.log('插入点：', insertIdx);
         return insertIdx;
@@ -298,7 +313,7 @@ cc.Class({
         let index = Math.floor(Math.random() * ObjectsArray.length)
         let ballObj = ObjectsArray[index]
         ballscript.init(ballObj);
-        // console.log('生成新小球');
+        console.log('生成新小球_instanceid：' + this._count, ballObj.name + ':' + ballObj.number);
         ball.parent = this.center;
         return ballscript
     },

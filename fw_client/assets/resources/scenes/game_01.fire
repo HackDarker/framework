@@ -464,7 +464,7 @@
     },
     "_canCreateBall": false,
     "_radius": 300,
-    "initNumber": 14,
+    "initNumber": 20,
     "_initBalls": 6
   },
   {

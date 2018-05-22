@@ -78,14 +78,68 @@ utils.getPointsBaseTouchPoint = function (array, targetIndex, radius) {
         detalAngle = 360 / number,//平分角度
         unitAngle = Math.PI / 180,//1° == Math.PI / 180弧度 
         points = []
-    // console.log('targetPoint', targetPoint);
-    // console.log(`非空数组长度:${number}  detal角：${detalAngle} 半径:${Radio}`);
+    console.log('targetPoint', targetPoint);
+    console.log(`非空数组长度:${number}  detal角：${detalAngle} 半径:${radius}`);
     for (let index = 0; index < array.length; index++) {
         if (!array[index]) {
             continue
         }
         let num = (index + number - targetIndex) % number;
-        // console.log(`小球${index} 需要添加平均角的个数：${num}`);
+        console.log(`小球${index} 需要添加平均角的个数：${num}`);
+        console.log(`参照小球的角度:${targetAngle}`);
+        let angle = targetAngle + num * detalAngle;
+        while (angle > 360) {
+            angle -= 360;
+        }
+        console.log(`小球${index} 最终的角度：${angle}`);
+        let X = radius * Math.cos(angle * unitAngle);
+        let Y = radius * Math.sin(angle * unitAngle);
+        let data = {
+            pos: cc.v2(X, Y),
+            angle: angle
+        }
+        // points.push(cc.v2(X, Y))
+        points.push(data)
+    }
+    return points;
+}
+/**
+ * 游戏结束 先刷新所有小球的位置 当最后一个小球（不在数组中的）到达圆上时再结束  要实现这个效果 则必须将原来添加的detalAngle个数都加1 且targetIndex的为1
+ * @param {*} array 
+ * @param {*} targetIndex 
+ * @param {*} touchAngle 
+ * @param {*} radius 
+ * @param {*} isOver 
+ */
+utils.getPointsBaseTouchAngle = function (array, targetIndex, touchAngle, radius, isOver) {
+    let arraylength = array.length,//
+        targetAngle = touchAngle,
+        number = utils.getNotNullOfArray(array).length,//非空对象个数
+        detalAngle = isOver ? 360 / (number + 1) : 360 / number,//平分角度
+        unitAngle = Math.PI / 180,//1° == Math.PI / 180弧度 
+        points = []
+    if (isOver) {
+        // number++;
+        arraylength++
+    }
+    // console.log(`非空数组长度:${number}  detal角：${detalAngle} 半径:${radius}`);
+    for (let index = 0; index < arraylength; index++) {
+        if (!array[index]) {
+            continue
+        }
+        let num = (index + number - targetIndex) % number;
+        // console.log('before num:', num);
+        if (isOver && targetIndex == index) {//over
+            num = 1;
+        } else if (isOver) {
+            num++
+        }
+        //#region 可设计结束效果  所有小球向一个地点移动
+        // if (array.length == number) {//over   
+        //     num = number;
+        // }
+        //#endregion
+        // console.log(`小球${index} :${array[index] ? array[index]._instanceid : '空'} 需要添加平均角的个数：${num}`);
         // console.log(`参照小球的角度:${targetAngle}`);
         let angle = targetAngle + num * detalAngle;
         while (angle > 360) {
