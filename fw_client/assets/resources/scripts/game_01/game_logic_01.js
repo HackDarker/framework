@@ -182,7 +182,7 @@ cc.Class({
             self.canTouch = false;
             self.tempball.node.runAction(
                 cc.sequence(
-                    cc.moveTo(0.5, position),
+                    cc.moveTo(0.3, position),
                     cc.callFunc(() => {
                         self.tempball = null;
                         if (!self._gameOver) {

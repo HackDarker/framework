@@ -93,7 +93,7 @@ cc.Class({
             // console.log(`小球：${this._ballname} id: ${this._instanceid} 当前位置：${pos} 当前角度：${this._startAngle}`);
             this.node.position = pos
             this._startAngle += this._offset;
-        }, 10)
+        }, 5)
 
 
     },
