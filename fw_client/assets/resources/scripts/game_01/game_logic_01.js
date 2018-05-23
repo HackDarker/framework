@@ -1,27 +1,8 @@
 
-let ObjectsArray = [
-    {
-        name: 'H',//名字 氢
-        color: '#00FFFF',//颜色
-        number: 1,//初始数值
-    },
-    {
-        name: 'He',//名字 氦
-        color: '#E100FF',//颜色
-        number: 2,//初始数值
-    },
-    {
-        name: 'Li',//名字 锂
-        color: '#E1E100',//颜色
-        number: 3,//初始数值
-    },
-    {
-        name: 'Pi',//名字 铍
-        color: '#00E100',//颜色
-        number: 4,//初始数值
-    },
-]
-
+let game_setting = require('game_settings')
+let MONSTER_TEMPLATE = game_setting.MONSTER_TEMPLATE
+let ENUM_MONSTER_TYPE = game_setting.ENUM_MONSTER_TYPE
+let MASTER_SCALE = 0.5;
 let utils = require('game_utils');
 cc.Class({
     extends: cc.Component,
@@ -44,10 +25,8 @@ cc.Class({
     start() {
         this.drawCircle();
         this._ballpool = new cc.NodePool('ball');
-        console.log('this.initNumber', this.initNumber);
         this.initTouchHandler();
         this.gameBegin();
-
     },
     //游戏开始 初始化游戏
     gameBegin: function () {
@@ -60,6 +39,10 @@ cc.Class({
         this.canTouch = true;
         for (let index = 0; index < this._initBalls; index++) {
             let newball = this.generateBall();
+            if (newball._type != ENUM_MONSTER_TYPE.norm) {
+                this.removeMonster(newball)
+                continue
+            }
             newball.node.parent = this.ballRoot;
             this.balllist[index] = newball
         }
@@ -105,8 +88,42 @@ cc.Class({
     /**
      * 检查是否有可以合并的小球
      */
-    checkCanMerge: function () {
+    checkAndMerge: function (targetIndex) {
+        let monsters = this.balllist;
 
+        let getFrontMonster = function (monsters, targetIndex) {
+            const monster = monsters[targetIndex - 1];
+            if (monster) {
+                return monster
+            }
+            for (let index = monsters.length - 1; index > 0; index--) {
+                if (monster[index]) {
+                    return monster;
+                } else {
+                    continue
+                }
+            }
+        }
+        let getNextMonster = function (monsters, targetIndex) {
+            const monster = monsters[targetIndex + 1];
+            if (monster) {
+                return monster
+            } else {
+                return monsters[0]
+            }
+        }
+
+        let targetMonster = monsters[targetIndex];
+        if (targetMonster._type == ENUM_MONSTER_TYPE.merge) {
+            let front = getFrontMonster(monsters, targetIndex);
+            let next = getNextMonster(monsters, targetIndex);
+            if (front._type == next._type && front._instanceid != next._instanceid && front._ballname == next._ballname) {
+                // this.Merge();
+
+                front.move(this._radius, targetMonster.node.position)
+                next.move(this._radius, targetMonster.node.position)
+            }
+        }
     },
     drawCircle: function (params) {
         this.ctx = this.getComponent(cc.Graphics);
@@ -195,6 +212,8 @@ cc.Class({
                             });
                             return;
                         }
+
+                        self.checkAndMerge(insertIndex);
                     })
                 )
             );
@@ -294,7 +313,6 @@ cc.Class({
         this.ctx2.stroke();
     },
 
-
     //新生成的小球暂存在临时数组
     generateBall: function () {
         let ball = this._ballpool.get();
@@ -304,20 +322,20 @@ cc.Class({
         }
         this._count++
         ball.position = cc.p({ x: 0, y: 0 });
-        ball.scale = 0.5
+        ball.scale = MASTER_SCALE
 
         let ballscript = ball.getComponent('ball')
 
         ballscript._instanceid = this._count;
 
-        let index = Math.floor(Math.random() * ObjectsArray.length)
-        let ballObj = ObjectsArray[index]
+        let index = Math.floor(Math.random() * MONSTER_TEMPLATE.length)
+        let ballObj = MONSTER_TEMPLATE[index]
         ballscript.init(ballObj);
         console.log('生成新小球_instanceid：' + this._count, ballObj.name + ':' + ballObj.number);
         ball.parent = this.center;
         return ballscript
     },
-    removeBall: function (ball) {
+    removeMonster: function (ball) {
         this._ballpool.put(ball);
     },
 
@@ -350,72 +368,3 @@ cc.Class({
 
     },
 });
-
-//#region  废弃代码
-// getInsertIndex2: function (position) {
-//     let touchAngle = utils.getAngleWithTouchPoint(position);
-//     let angleA = -1
-//     let angleB = -1
-//     let insertIdx = -1;
-//     console.log(`------------------点击点角度：${touchAngle}`);
-
-//     let check = function (A, B, touch) {
-//         console.log(`检测touch:${touch} 是否在区间AB内：[${B},${A}]`);
-//         if (Math.abs(A - B) > 270) {
-//             if ((B + 90) < fn(touch + 90) < fn(A + 90)) {
-//                 return true;
-//             }
-//         }
-//         if (Math.abs(A - B) > 180) {
-//             if ((B + 90) < fn(touch + 90) < fn(A + 90)) {
-//                 return true;
-//             }
-//         }
-//         else {
-//             return B < touch && touch < A
-//         }
-//     }
-//     let fn = function (a) {
-//         while (a > 360) {
-//             a -= 360;
-//         }
-//         return a;
-//     }
-//     let aaa = 600;
-//     let tempidx = -1;//离得最近的小球的索引
-//     let idx = 0;//离得最近的小球的索引
-//     this.balllist.forEach(element => {
-//         console.log('idx:', idx);
-//         let angleA = utils.getAngleWithTouchPoint(element.node.position);
-//         let bbb = Math.abs(angleA - touchAngle);
-//         if (aaa > bbb) {
-//             aaa = bbb;
-//             tempidx = idx;
-//         }
-//         idx++;
-//     });
-//     console.log('角度距离：', aaa);
-//     console.log('离得最近的小球索引：', tempidx);
-//     if (!this.balllist[this.balllist.length - 1]) {
-//         for (let index = 0; index < this.balllist.length; index++) {
-//             const ball = this.balllist[index];
-//             if (!ball) {
-//                 insertIdx = index;
-//                 break;
-//             }
-//             let angleA = utils.getAngleWithTouchPoint(ball.node.position);
-//             console.log(`数组内小球角度${ball._ballname} : ${ball._instanceid}==>angleA:${angleA}  angleB:${angleB} `);
-//             if (angleB != -1) {
-//                 if (check(angleA, angleB, touchAngle)) {
-//                     insertIdx = index;
-//                     break;
-//                 }
-//             }
-//             angleB = angleA;
-//         }
-//     }
-//     console.log(`------------------点击点角度：${touchAngle}`);
-//     return insertIdx;
-// },
-
-//#endregion 废弃代码

@@ -1,4 +1,6 @@
 let utils = require('game_utils');
+let game_setting = require('game_settings')
+let ENUM_MONSTER_TYPE = game_setting.ENUM_MONSTER_TYPE
 cc.Class({
     extends: cc.Component,
 
@@ -9,7 +11,8 @@ cc.Class({
         // _next: -1,//在数组中的后一个位置
         _ballname: '',//显示的名字
         _number: 0,//显示的数字
-        speed: 1
+        speed: 1,
+        _type: null,
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -25,14 +28,22 @@ cc.Class({
         this._ballname = data.name;
         this._number = data.number;
         this.node.color = cc.hexToColor(data.color);
+        this._type = data.type;
         // console.log('_instanceid', this._instanceid);
 
         this.refresh();
     },
 
     refresh() {
-        this.node.getChildByName('name').getComponent(cc.Label).string = this._ballname;
-        this.node.getChildByName('number').getComponent(cc.Label).string = this._number;
+        if (this._type == ENUM_MONSTER_TYPE.norm) {
+            this.node.getChildByName('name').getComponent(cc.Label).string = this._ballname;
+            this.node.getChildByName('number').getComponent(cc.Label).string = this._number;
+            this.node.getChildByName('name').active = true;
+            this.node.getChildByName('number').active = true;
+        } else {
+            this.node.getChildByName('name').active = false;
+            this.node.getChildByName('number').active = false;
+        }
         this.node.getChildByName('instanceid').getComponent(cc.Label).string = this._instanceid;
     },
     /**
