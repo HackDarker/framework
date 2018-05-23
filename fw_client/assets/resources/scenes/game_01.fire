@@ -396,7 +396,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "ballList",
+    "_name": "monsterList",
     "_objFlags": 0,
     "_parent": {
       "__id__": 5
@@ -453,19 +453,20 @@
     "center": {
       "__id__": 8
     },
-    "ballprefab": {
+    "monsterPrefab": {
       "__uuid__": "acbcba57-f94b-43c5-a06d-fb4bdf820e91"
     },
-    "ballRoot": {
+    "monsterRoot": {
       "__id__": 10
     },
     "Graphics": {
       "__id__": 6
     },
-    "_canCreateBall": false,
+    "_canCreateMonster": false,
     "_radius": 300,
-    "initNumber": 22,
-    "_initBalls": 6
+    "maxMonsters": 22,
+    "_initNumber": 6,
+    "_state": ""
   },
   {
     "__type__": "cc.Graphics",

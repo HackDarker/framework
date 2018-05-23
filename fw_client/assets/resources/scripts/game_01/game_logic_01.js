@@ -2,20 +2,21 @@
 let game_setting = require('game_settings')
 let MONSTER_TEMPLATE = game_setting.MONSTER_TEMPLATE
 let ENUM_MONSTER_TYPE = game_setting.ENUM_MONSTER_TYPE
-let MASTER_SCALE = 0.5;
+let MONSTER_SCALE = 0.5;
 let utils = require('game_utils');
 cc.Class({
     extends: cc.Component,
 
     properties: {
         center: cc.Node,
-        ballprefab: cc.Prefab,
-        ballRoot: cc.Node,
+        monsterPrefab: cc.Prefab,
+        monsterRoot: cc.Node,
         Graphics: cc.Node,
-        _canCreateBall: false,//生成小球控制器
+        _canCreateMonster: false,//生成小球控制器
         _radius: 300,
-        initNumber: 15,
-        _initBalls: 6
+        maxMonsters: 15,//最大个数，超过则游戏结束
+        _initNumber: 6,//游戏开始预设个数
+        _state: ''
     },
 
     // LIFE-CYCLE CALLBACKS:
@@ -24,39 +25,40 @@ cc.Class({
 
     start() {
         this.drawCircle();
-        this._ballpool = new cc.NodePool('ball');
+        this._monsterPool = new cc.NodePool('monster');
         this.initTouchHandler();
         this.gameBegin();
     },
     //游戏开始 初始化游戏
     gameBegin: function () {
-        this.ballRoot.removeAllChildren();
+        this.monsterRoot.removeAllChildren();
         this.center.removeAllChildren();
         this._gameOver = false;
         this._count = 0;
-        this.balllist = new Array(this.initNumber);
-        this.tempball = null;
+        this.monsterList = new Array(this.maxMonsters);
+        this.tempMonster = null;
         this.canTouch = true;
-        for (let index = 0; index < this._initBalls; index++) {
-            let newball = this.generateBall();
-            if (newball._type != ENUM_MONSTER_TYPE.norm) {
-                this.removeMonster(newball)
+        let number = 0;
+        for (let index = 0; index < this._initNumber; index++) {
+            let newMonster = this.generateMonster();
+            if (newMonster._type != ENUM_MONSTER_TYPE.norm) {
+                this.removeMonster(newMonster)
                 continue
             }
-            newball.node.parent = this.ballRoot;
-            this.balllist[index] = newball
+            newMonster.node.parent = this.monsterRoot;
+            this.monsterList[number++] = newMonster
         }
-        this.initBallPosition(true, 50);
+        this.initMonsterPosition(true, 50);
     },
     /**
      * 游戏开局 将新生成的小球放到圆上
      * @param {*} tag 
      * @param {*} offsetangle 初始角度位移
      */
-    initBallPosition(tag, offsetangle) {
-        let count = utils.getNotNullOfArray(this.balllist);
+    initMonsterPosition(tag, offsetangle) {
+        let count = utils.getNotNullOfArray(this.monsterList);
         let points = utils.getPointsWithNumber(count.length, this._radius, offsetangle);
-        // console.log('balllist内小球个数：', count);
+        // console.log('monsterList：', this.monsterList);
         // console.log('points对应小球位置：', points);
         for (let index = 0; index < count.length; index++) {
             const element = count[index];
@@ -71,11 +73,11 @@ cc.Class({
      * @param {*} tag 
      * @param {*} targetindex 
      */
-    refreshBallPosition(targetindex, TouchAngle) {
-        let count = utils.getNotNullOfArray(this.balllist);
-        let points = utils.getPointsBaseTouchAngle(this.balllist, targetindex, TouchAngle, this._radius, this._gameOver);
-        // let points = utils.getPointsBaseTouchPoint(this.balllist, targetindex, this._radius);
-        console.log('balllist内小球个数：', count);
+    refreshMonstersPosition(targetindex, TouchAngle) {
+        let count = utils.getNotNullOfArray(this.monsterList);
+        let points = utils.getPointsBaseTouchAngle(this.monsterList, targetindex, TouchAngle, this._radius, this._gameOver);
+        // let points = utils.getPointsBaseTouchPoint(this.monsterList, targetindex, this._radius);
+        console.log('monsterList内小球个数：', count);
         console.log('points对应小球位置：', points);
         for (let index = 0; index < count.length; index++) {
             const element = count[index];
@@ -89,7 +91,7 @@ cc.Class({
      * 检查是否有可以合并的小球
      */
     checkAndMerge: function (targetIndex) {
-        let monsters = this.balllist;
+        let monsters = this.monsterList;
 
         let getFrontMonster = function (monsters, targetIndex) {
             const monster = monsters[targetIndex - 1];
@@ -97,8 +99,8 @@ cc.Class({
                 return monster
             }
             for (let index = monsters.length - 1; index > 0; index--) {
-                if (monster[index]) {
-                    return monster;
+                if (monsters[index]) {
+                    return monsters[index];
                 } else {
                     continue
                 }
@@ -113,15 +115,33 @@ cc.Class({
             }
         }
 
+        let getNewMonster = function (newMonsterNumber) {
+            let monsters = MONSTER_TEMPLATE
+            let monster = null
+            monsters.forEach(item => {
+                if (item.number == newMonsterNumber) {
+                    monster = item;
+                }
+            });
+            return monster;
+        }
+
         let targetMonster = monsters[targetIndex];
         if (targetMonster._type == ENUM_MONSTER_TYPE.merge) {
             let front = getFrontMonster(monsters, targetIndex);
             let next = getNextMonster(monsters, targetIndex);
-            if (front._type == next._type && front._instanceid != next._instanceid && front._ballname == next._ballname) {
+            if (front._type == next._type && front._monsterId != next._monsterId && front._monsterName == next._monsterName) {
                 // this.Merge();
 
                 front.move(this._radius, targetMonster.node.position)
                 next.move(this._radius, targetMonster.node.position)
+
+                let newMonsterNumber = front._number + next._number
+                let newMonster = getNewMonster(newMonsterNumber)
+
+                front.init(newMonster)
+
+                this.deleteMonster([targetIndex, next._index]);//待解决问题：循环检查是否还可以合并 否则重新刷新所有怪物的位置
             }
         }
     },
@@ -186,22 +206,22 @@ cc.Class({
             let position = utils.getPositionWithTouchPoint(localLoc, self._radius);
             position = self.getCenterPoint(position);
             console.log('触摸点转换后圆上坐标：', position)
-            self.tempball.node.parent = self.ballRoot;//将小球挂载到球列表
-            // console.log('原始数组', self.balllist)
+            self.tempMonster.node.parent = self.monsterRoot;//将小球挂载到球列表
+            // console.log('原始数组', self.monsterList)
             let insertIndex = self.getInsertIndex(position);
             console.log('小球插入位置', insertIndex)
             if (!self._gameOver) {
-                self.insertBall(insertIndex, self.tempball);
+                self.insertMonster(insertIndex, self.tempMonster);
             }
-            // console.log('添加新球后数组', self.balllist)
-            let ballCount = utils.getNotNullOfArray(self.balllist).length
+            // console.log('添加新球后数组', self.monsterList)
+            let ballCount = utils.getNotNullOfArray(self.monsterList).length
 
             self.canTouch = false;
-            self.tempball.node.runAction(
+            self.tempMonster.node.runAction(
                 cc.sequence(
                     cc.moveTo(0.3, position),
                     cc.callFunc(() => {
-                        self.tempball = null;
+                        self.tempMonster = null;
                         if (!self._gameOver) {
                             self._canCreateBall = true;
                         }
@@ -218,32 +238,16 @@ cc.Class({
                 )
             );
             let touchAngle = utils.getAngleWithTouchPoint(position)
-            self.refreshBallPosition(insertIndex, touchAngle);
+            self.refreshMonstersPosition(insertIndex, touchAngle);
 
         }, this.Graphics);
-        // this.Graphics.on(cc.Node.EventType.TOUCH_CANCEL, function (event) {
-        //     var touches = event.getTouches();
-        //     var touchLoc = touches[0].getLocation();
-        //     var localLoc = self.Graphics.parent.convertToNodeSpaceAR(touchLoc);
-        //     self.drawLine();
-
-        //     let position = utils.getPositionWithTouchPoint(localLoc,self._radius);
-
-        //     self.tempball.node.parent = self.ballRoot;//将小球挂载到球列表
-        //     self.insertBall();
-
-        //     self.tempball.node.runAction(cc.sequence(
-        //         cc.moveTo(2, position),
-        //         cc.callFunc()
-        //     ));
-        // }, this.Graphics);
     },
     /**
      * 根据触摸点获取所在扇形的中点
      */
     getCenterPoint: function (position) {
         let insertIndex = this.getInsertIndex(position);
-        let array = utils.getNotNullOfArray(this.balllist)
+        let array = utils.getNotNullOfArray(this.monsterList)
         let length = array.length
         let pointA = array[insertIndex] ? array[insertIndex].node.position : array[0].node.position
         let pointB = array[(length + insertIndex - 1) % length].node.position
@@ -263,7 +267,7 @@ cc.Class({
         let tempAngle = 10000;
         let tempObj = {};//离得最近的小球的索引
         var idx = 0;
-        this.balllist.forEach(element => {
+        this.monsterList.forEach(element => {
             let angle = utils.getAngleWithTouchPoint(element.node.position);
             if (angle) {
                 let delta = Math.abs(angle - touchAngle);
@@ -290,7 +294,7 @@ cc.Class({
             insertIdx = tempObj.index
         }
         // console.log(`------------------点击点角度：${touchAngle}`);
-        if (utils.getNotNullOfArray(this.balllist).length == this.balllist.length) {
+        if (utils.getNotNullOfArray(this.monsterList).length == this.monsterList.length) {
             console.log('游戏结束');
             this._gameOver = true;
         }
@@ -314,54 +318,69 @@ cc.Class({
     },
 
     //新生成的小球暂存在临时数组
-    generateBall: function () {
-        let ball = this._ballpool.get();
-        if (!ball) {
-            ball = cc.instantiate(this.ballprefab);
-            ball.addComponent('ball')
+    generateMonster: function () {
+        let node = this._monsterPool.get();
+        if (!node) {
+            node = cc.instantiate(this.monsterPrefab);
+            node.addComponent('monster')
         }
         this._count++
-        ball.position = cc.p({ x: 0, y: 0 });
-        ball.scale = MASTER_SCALE
+        node.position = cc.p({ x: 0, y: 0 });
+        node.scale = MONSTER_SCALE
+        node.parent = this.center;
 
-        let ballscript = ball.getComponent('ball')
-
-        ballscript._instanceid = this._count;
+        let monsterscript = node.getComponent('monster')
+        monsterscript._monsterId = this._count;
 
         let index = Math.floor(Math.random() * MONSTER_TEMPLATE.length)
-        let ballObj = MONSTER_TEMPLATE[index]
-        ballscript.init(ballObj);
-        console.log('生成新小球_instanceid：' + this._count, ballObj.name + ':' + ballObj.number);
-        ball.parent = this.center;
-        return ballscript
+        let monster = MONSTER_TEMPLATE[index]
+        monsterscript.init(monster);
+        console.log('生成新对象monsterId：' + this._count, monster.name + ':' + monster.number);
+        return monsterscript
     },
     removeMonster: function (ball) {
-        this._ballpool.put(ball);
+        this._monsterPool.put(ball.node);
     },
 
-    insertBall: function (posIndex, tempball) {
-        if (this.balllist[posIndex]) {
-            for (let index = this.balllist.length - 1; index > posIndex; index--) {
-                if (this.balllist[index - 1]) {
-                    this.balllist[index] = this.balllist[index - 1]
-                    this.balllist[index]._index = index
+    insertMonster: function (posIndex, tempMonster) {
+        if (this.monsterList[posIndex]) {
+            for (let index = this.monsterList.length - 1; index > posIndex; index--) {
+                if (this.monsterList[index - 1]) {
+                    this.monsterList[index] = this.monsterList[index - 1]
+                    this.monsterList[index]._index = index
                     // console.log(`${index - 1} 后移成功 现在位置为${index}`);
                 } else {
-                    // console.log(`当前索引${index}  目标:${index - 1}是否为空${this.balllist[index - 1] == null}`);
+                    // console.log(`当前索引${index}  目标:${index - 1}是否为空${this.monsterList[index - 1] == null}`);
                     continue
                 }
             }
         }
-        this.balllist[posIndex] = tempball;//存储小球对象到数组
-        tempball._index = posIndex;
+        this.monsterList[posIndex] = tempMonster;//存储小球对象到数组
+        tempMonster._index = posIndex;
     },
 
-    deleteBall: function (targetIndex) {
-        this.balllist[targetIndex] = null;
+    deleteMonster: function (indexArry) {
+        for (let index = 0; index < indexArry.length; index++) {
+            let monster = this.monsterList[indexArry[index]]
+            this.removeMonster(monster)
+            this.monsterList[indexArry[index]] = null;
+        }
+
+        let MArray = utils.getNotNullOfArray(this.monsterList)
+        console.log('MArray', MArray);
+        for (let ii = 0; ii < this.monsterList.length; ii++) {
+            if (MArray[ii]) {
+                MArray[ii]._index = ii;
+                this.monsterList[ii] = MArray[ii]
+            } else {
+                this.monsterList[ii] = null
+            }
+        }
+        console.log('monsterList', this.monsterList);
     },
     update(dt) {
         if (this._canCreateBall) {
-            this.tempball = this.generateBall();
+            this.tempMonster = this.generateMonster();
             this._canCreateBall = false;
             this.canTouch = true;
         }

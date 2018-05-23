@@ -45,3 +45,15 @@ exports.MONSTER_TEMPLATE = [
         type: ENUM_MONSTER_TYPE.merge
     },
 ]
+
+exports.default_config = {
+
+}
+/**
+ * 游戏状态枚举
+ */
+exports.ENUM_GAME_TSATE = {
+    BEGIN: 0,
+    OVER: 1,
+    PLAYING: 2,
+}

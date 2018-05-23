@@ -10,7 +10,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "ballprefab",
+    "_name": "monsterPrefab",
     "_objFlags": 0,
     "_parent": null,
     "_children": [
@@ -246,7 +246,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "instanceid",
+    "_name": "id",
     "_objFlags": 0,
     "_parent": {
       "__id__": 1
