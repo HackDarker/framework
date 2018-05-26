@@ -397,7 +397,7 @@ cc.Class({
         console.log(`length:${length}`)
         let localLoc = position
         if (length > 1) {
-            localLoc = utils.getCenterPoint(pointA, pointB, this._radius)//两点为对角时中点无限接近零但不是零  需要调整 c.v2 API问题 
+            localLoc = utils.getCenterPoint(pointA, pointB, this._radius)// 两点为对角时中点无限接近零但不是零  需要调整 c.v2 API问题 
             console.log('中点坐标：', localLoc);
             if (localLoc.x == 0 && localLoc.y == 0) {//只剩2个的时候    
                 let angleA = utils.getAngleWithTouchPoint(pointA);
