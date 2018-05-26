@@ -29,9 +29,20 @@ cc.Class({
         this._number = data.number;
         this.node.color = cc.hexToColor(data.color);
         this._type = data.type;
-        // console.log('_monsterId', this._monsterId);
+        this._skill = data.skill;
+        console.log('data.name:' + data.name + ':' + this._monsterId, data);
 
         this.refresh();
+    },
+
+    reset() {
+        console.log(`原对象${this._monsterName} ${this._monsterId} 还原成功`);
+        console.log(`_skill${this._skill} _type${this._type} 还原成功`);
+        this._monsterName = '';
+        this._number = 0;
+        this.node.color = cc.hexToColor('#FFFFFF');
+        this._type = null;
+        this._skill = null;
     },
 
     refresh() {
@@ -51,17 +62,16 @@ cc.Class({
      * @param {*} radius 
      * @param {*} position 
      */
-    move(radius, position) {
+    move(radius, position, callback) {
         this._isMoving = true;
         this._radius = radius;
         // this._deltaAngle = utils.getdeltaAngleBetweenPoints(this._radius, this.node.position, position);
         this._startAngle = utils.getAngleWithTouchPoint(this.node.position);
         this._endAngle = utils.getAngleWithTouchPoint(position);
         // console.log(`开始位置:${this.node.position}   目标位置:${position}`)
-        console.log(`------------------------------------------------`)
+        console.log(`--------------------小球：${this._monsterName} id:${this._monsterId} 准备移动----------------------------`)
         // this._startAngle = Math.floor(this._startAngle);
         // this._endAngle = Math.floor(this._endAngle);
-        console.log(`小球：${this._monsterName} id:${this._monsterId} 准备移动`);
         console.log(`开始角度:${this._startAngle}   目标角度:${this._endAngle}`)
 
         this._PI = 0
@@ -95,10 +105,13 @@ cc.Class({
         let timer = setInterval(() => {
             if (!this._isMoving) { return }
             if (this.area[0] <= Math.floor(this._startAngle) && this.area[1] >= Math.floor(this._startAngle)) {
-                console.log(`小球：${this._monsterName} id: ${this._monsterId} 已到达位置: ${this.node.position} 当前角：${this._startAngle} 区间：${this.area}`)
+                // console.log(`小球：${this._monsterName} id: ${this._monsterId} 已到达位置: ${this.node.position} 当前角：${this._startAngle} 区间：${this.area}`)
                 this._isMoving = false
                 clearInterval(timer)
                 this._startAngle = this._endAngle;
+                if (callback) {
+                    callback()
+                }
             }
             let pos = utils.getPointWithAngle(this._startAngle, this._radius)
             // console.log(`小球：${this._monsterName} id: ${this._monsterId} 当前位置：${pos} 当前角度：${this._startAngle}`);

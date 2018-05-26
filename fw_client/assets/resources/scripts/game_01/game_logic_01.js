@@ -35,18 +35,22 @@ cc.Class({
         this.center.removeAllChildren();
         this._gameOver = false;
         this._count = 0;
-        this.monsterList = new Array(this.maxMonsters);
+        this.monsterList = new Array();
+        console.log(this.monsterList);
         this.tempMonster = null;
         this.canTouch = true;
         let number = 0;
-        for (let index = 0; index < this._initNumber; index++) {
+        for (let index = 0; index < 10; index++) {
             let newMonster = this.generateMonster();
             if (newMonster._type != ENUM_MONSTER_TYPE.norm) {
                 this.removeMonster(newMonster)
                 continue
             }
+            this.insertMonster(number++, newMonster);
             newMonster.node.parent = this.monsterRoot;
-            this.monsterList[number++] = newMonster
+            if (this._initNumber == number) {
+                break;
+            }
         }
         this.initMonsterPosition(true, 50);
     },
@@ -77,8 +81,8 @@ cc.Class({
         let count = utils.getNotNullOfArray(this.monsterList);
         let points = utils.getPointsBaseTouchAngle(this.monsterList, targetindex, TouchAngle, this._radius, this._gameOver);
         // let points = utils.getPointsBaseTouchPoint(this.monsterList, targetindex, this._radius);
-        console.log('monsterList内小球个数：', count);
-        console.log('points对应小球位置：', points);
+        console.log('数组内非空对象', count);
+        console.log('对应目标位置', points);
         for (let index = 0; index < count.length; index++) {
             const element = count[index];
             if (element && element._index != targetindex || this._gameOver) {//游戏结束前 target 单独运动 结束时一起调用move方法  因为此时的target为原来的节点 没有被替换掉
@@ -88,63 +92,201 @@ cc.Class({
         // this._canCreateBall = true;
     },
     /**
-     * 检查是否有可以合并的小球
-     */
-    checkAndMerge: function (targetIndex) {
-        let monsters = this.monsterList;
-
-        let getFrontMonster = function (monsters, targetIndex) {
-            const monster = monsters[targetIndex - 1];
-            if (monster) {
-                return monster
-            }
-            for (let index = monsters.length - 1; index > 0; index--) {
-                if (monsters[index]) {
-                    return monsters[index];
-                } else {
-                    continue
-                }
-            }
+    * 获取目标位置后一个对象：
+    * @param {*} monsters 
+    * @param {*} targetIndex 
+    */
+    getNewMonster: function (newMonsterNumber) {
+        console.log('合并后新对象number', newMonsterNumber);
+        if (newMonsterNumber > 6) {
+            console.log('当前分值大于最大值');
+            newMonsterNumber = 1;
         }
-        let getNextMonster = function (monsters, targetIndex) {
-            const monster = monsters[targetIndex + 1];
-            if (monster) {
-                return monster
+        let monsters = MONSTER_TEMPLATE
+        let monster = null
+        monsters.forEach(item => {
+            item.skill = null
+            if (item.number == newMonsterNumber) {
+                monster = item;
+            }
+        });
+        console.log('合并后产生新小球：', monster);
+        return monster;
+    },
+    /**
+ * 获取目标索引前一个对象
+ * @param {*} monsters 
+ * @param {*} targetIndex 
+ */
+    getFrontMonster: function (monsters, targetIndex) {
+        const monster = monsters[targetIndex - 1];
+        if (monster) {
+            return monster
+        }
+        for (let index = monsters.length - 1; index >= 0; index--) {
+            if (monsters[index]) {
+                return monsters[index];
             } else {
-                return monsters[0]
-            }
-        }
-
-        let getNewMonster = function (newMonsterNumber) {
-            let monsters = MONSTER_TEMPLATE
-            let monster = null
-            monsters.forEach(item => {
-                if (item.number == newMonsterNumber) {
-                    monster = item;
-                }
-            });
-            return monster;
-        }
-
-        let targetMonster = monsters[targetIndex];
-        if (targetMonster._type == ENUM_MONSTER_TYPE.merge) {
-            let front = getFrontMonster(monsters, targetIndex);
-            let next = getNextMonster(monsters, targetIndex);
-            if (front._type == next._type && front._monsterId != next._monsterId && front._monsterName == next._monsterName) {
-                // this.Merge();
-
-                front.move(this._radius, targetMonster.node.position)
-                next.move(this._radius, targetMonster.node.position)
-
-                let newMonsterNumber = front._number + next._number
-                let newMonster = getNewMonster(newMonsterNumber)
-
-                front.init(newMonster)
-
-                this.deleteMonster([targetIndex, next._index]);//待解决问题：循环检查是否还可以合并 否则重新刷新所有怪物的位置
+                continue
             }
         }
     },
+    /**
+     * 获取目标位置后一个对象：
+     * @param {*} monsters 
+     * @param {*} targetIndex 
+     */
+    getNextMonster: function (monsters, targetIndex) {
+        const monster = monsters[targetIndex + 1];
+        if (monster) {
+            return monster
+        } else {
+            return monsters[0]
+        }
+    },
+    mergeObjs: function (monsterA, monsterB, monsterC) {
+        monsterA.move(this._radius, monsterC.node.position)
+        monsterB.move(this._radius, monsterC.node.position, () => {
+            this.deleteMonsterAtIndex([monsterC._index, monsterB._index]);//待解决问题：循环检查是否还可以合并 否则重新刷新所有怪物的位置
+            let newMonsterNumber = monsterA._number + monsterB._number + monsterC._number
+            let newMonster = this.getNewMonster(newMonsterNumber)
+            newMonster.skill = ENUM_MONSTER_TYPE.merge//合并完 赋予新对象合并的技能 用于下一轮检测
+            monsterA.init(newMonster)
+
+            return monsterA._index;
+        })
+    },
+    /**
+     * 检查是否有可以合并的小球
+     */
+    checkAndMerge: function (targetIndex) {
+        if (targetIndex == -1) {
+            return
+        }
+        let monsters = this.monsterList;
+
+        let targetMonster = monsters[targetIndex];
+        if (!targetMonster) {
+            console.log('monsters', monsters);
+            console.error(`索引异常:${targetIndex} 无法获取对象：${targetMonster}`);
+            return
+        }
+        let front = this.getFrontMonster(monsters, targetIndex);
+        let next = this.getNextMonster(monsters, targetIndex);
+        console.log('targetMonster', targetMonster);
+        console.log('front', front);
+        console.log('next', next);
+        console.log('targetMonster', targetMonster._number);
+        console.log('front', front._number);
+        console.log('next', next._number);
+
+        let nexttargetindex = -1;//本轮合并完毕在检测下一轮
+        let finalMonster = null;//合并完后的对象
+        new Promise((resolve, reject) => {
+            console.log('targetMonster._skill:' + targetMonster._monsterName, targetMonster._skill);
+            if (targetMonster._type == ENUM_MONSTER_TYPE.merge || targetMonster._skill == ENUM_MONSTER_TYPE.merge) {//插入对象有合并技能
+                if (front._type == next._type && front._number == next._number && front._monsterId != next._monsterId && next._type != ENUM_MONSTER_TYPE.merge) {
+                    // this.Merge();
+                    console.log(`front._index:${front._index} next._index:${next._index}  targetMonster._index:${targetMonster._index}  `);
+                    front.move(this._radius, targetMonster.node.position)
+                    next.move(this._radius, targetMonster.node.position, () => {
+                        let newMonsterNumber = front._number + next._number + targetMonster._number
+                        this.deleteMonsterAtIndex([targetIndex, next._index]);//待解决问题：循环检查是否还可以合并 否则重新刷新所有怪物的位置
+                        let newMonster = this.getNewMonster(newMonsterNumber)
+                        newMonster.skill = ENUM_MONSTER_TYPE.merge//合并完 赋予新对象合并的技能 用于下一轮检测
+                        front.init(newMonster)
+
+                        nexttargetindex = front._index;
+                        console.log('nexttargetindex', nexttargetindex);
+                        // nexttargetindex = this.mergeObjs(front, next, targetMonster);
+                        resolve({ index: nexttargetindex })
+                    })
+                } else {
+                    console.log('清除对象技能');
+                    finalMonster = targetMonster;
+                    targetMonster._skill = null
+                    resolve({ index: nexttargetindex, finalMonster: finalMonster })
+                }
+                return
+            }
+            if (front._type == ENUM_MONSTER_TYPE.merge) {//插入对象前一个有合并技能
+                let front2index = front._index
+                console.log('front._index', front._index);
+                let front2 = this.getFrontMonster(monsters, front2index)
+                console.log('front2', front2);
+                console.log(`插入点的前方 front._index:${front._index} next._index:${front2._index}  targetMonster._index:${targetMonster._index}  `);
+                if (front2._type == targetMonster._type && front2._number == targetMonster._number) {
+                    front2.move(this._radius, front.node.position)
+                    targetMonster.move(this._radius, front.node.position, () => {
+                        let newMonsterNumber = front2._number + targetMonster._number + front._number
+                        this.deleteMonsterAtIndex([targetIndex, front._index]);//待解决问题：循环检查是否还可以合并 否则重新刷新所有怪物的位置
+                        let newMonster = this.getNewMonster(newMonsterNumber)
+                        newMonster.skill = ENUM_MONSTER_TYPE.merge
+                        front2.init(newMonster)
+
+                        nexttargetindex = front2._index;
+                        console.log('nexttargetindex', nexttargetindex);
+                        // nexttargetindex = this.mergeObjs(front2, targetMonster, front);
+                        resolve({ index: nexttargetindex })
+                    })
+                    return
+                }
+                // else {
+                //     resolve({ index: -1 })
+                // }
+            }
+            if (next._type == ENUM_MONSTER_TYPE.merge) {//插入对象后一个有合并技能
+                let next2index = next._index
+                console.log('next._index', next._index);
+                let next2 = this.getNextMonster(monsters, next2index)
+                console.log('next2', next2);
+                console.log(`插入点的后方 next2._index:${next2._index} next._index:${next._index}  targetMonster._index:${targetMonster._index}  `);
+                if (next2._type == targetMonster._type && next2._number == targetMonster._number) {
+                    next2.move(this._radius, next.node.position)
+                    targetMonster.move(this._radius, next.node.position, () => {
+                        let newMonsterNumber = next2._number + targetMonster._number + next._number
+                        this.deleteMonsterAtIndex([next2._index, next._index]);//位置不能换
+                        let newMonster = this.getNewMonster(newMonsterNumber)
+                        newMonster.skill = ENUM_MONSTER_TYPE.merge
+                        targetMonster.init(newMonster)
+
+                        nexttargetindex = targetMonster._index;
+                        console.log('nexttargetindex', nexttargetindex);
+                        // nexttargetindex = this.mergeObjs(next2, targetMonster, next);
+                        resolve({ index: nexttargetindex })
+                    })
+                }
+                else {
+                    console.error('插入点的后方 没有可以合并的组合')
+                    resolve({ index: -1 })
+                }
+            } else {
+                console.error('没有可以合并的组合');
+                resolve({ index: -1 })
+            }
+        }).then(data => {
+            let nexttargetindex = data.index
+            let finalMonster = data.finalMonster
+            console.log('进入下一轮检测在当前索引下是否还能合并：', nexttargetindex);
+            console.log('进入下一轮检测在当前索引下是否还能合并：', finalMonster);
+            if (nexttargetindex == -1) {
+                if (finalMonster) {
+                    console.log('无法再合并，刷新所有小球位置');
+                    let touchAngle = utils.getAngleWithTouchPoint(finalMonster.node.position)
+                    this.refreshMonstersPosition(finalMonster._index, touchAngle);
+                }
+                this._canCreateBall = true;
+            } else {
+                setTimeout((nexttargetindex) => {
+                    this.checkAndMerge(nexttargetindex);
+                }, 500, nexttargetindex);
+            }
+        }).catch(err => {
+            console.error(err);
+        })
+    },
+
+
     drawCircle: function (params) {
         this.ctx = this.getComponent(cc.Graphics);
 
@@ -179,6 +321,7 @@ cc.Class({
             var localLoc = self.Graphics.parent.convertToNodeSpaceAR(touchLoc);
 
             console.log('所点击位置的角度：', utils.getAngleWithTouchPoint(localLoc));
+            console.log(localLoc);
             let position = utils.getPositionWithTouchPoint(localLoc, self._radius);
             localLoc = self.getCenterPoint(position);
             self.drawLine(localLoc);
@@ -204,8 +347,9 @@ cc.Class({
             var localLoc = self.Graphics.parent.convertToNodeSpaceAR(touchLoc);
             self.drawLine();
             let position = utils.getPositionWithTouchPoint(localLoc, self._radius);
-            position = self.getCenterPoint(position);
             console.log('触摸点转换后圆上坐标：', position)
+            position = self.getCenterPoint(position);
+            console.log('触摸点转换后圆上扇形中点坐标：', position)
             self.tempMonster.node.parent = self.monsterRoot;//将小球挂载到球列表
             // console.log('原始数组', self.monsterList)
             let insertIndex = self.getInsertIndex(position);
@@ -223,16 +367,14 @@ cc.Class({
                     cc.callFunc(() => {
                         self.tempMonster = null;
                         if (!self._gameOver) {
-                            self._canCreateBall = true;
-                        }
-                        if (self._gameOver) {
+                            // self._canCreateBall = true;
+                        } else {
                             self._canCreateBall = false;
                             gc.alert.showUI('游戏结束，进入下一局', () => {
                                 self.gameBegin();
                             });
                             return;
                         }
-
                         self.checkAndMerge(insertIndex);
                     })
                 )
@@ -251,9 +393,44 @@ cc.Class({
         let length = array.length
         let pointA = array[insertIndex] ? array[insertIndex].node.position : array[0].node.position
         let pointB = array[(length + insertIndex - 1) % length].node.position
-        // console.log(`pointA:${pointA} pointB:${pointB}`)
-        let localLoc = utils.getCenterPoint(pointA, pointB, this._radius)
-        // console.log('中点坐标：', localLoc);
+        console.log(`pointA:${pointA} pointB:${pointB}`)
+        console.log(`length:${length}`)
+        let localLoc = position
+        if (length > 1) {
+            localLoc = utils.getCenterPoint(pointA, pointB, this._radius)//两点为对角时中点无限接近零但不是零  需要调整 c.v2 API问题 
+            console.log('中点坐标：', localLoc);
+            if (localLoc.x == 0 && localLoc.y == 0) {//只剩2个的时候    
+                let angleA = utils.getAngleWithTouchPoint(pointA);
+                let angleTouch = utils.getAngleWithTouchPoint(position);
+                // if (angleA > angleTouch && angleA <= 180) {
+                //     angleA -= 90;
+                // } else if (180 < angleTouch && angleA <= 180) {
+                //     angleA += 90;
+                // }
+                console.log(`angleA:${angleA}  angleTouch:${angleTouch}`);
+                if (angleA <= 180) {
+                    if (angleA <= angleTouch && angleTouch < angleA + 180) {
+                        angleA += 90
+                    } else {
+                        angleA += 270
+                        while (angleA > 360) {
+                            angleA -= 360
+                        }
+                    }
+                } else {
+                    if (angleA - 180 <= angleTouch && angleTouch < angleA) {
+                        angleA -= 90
+                    } else {
+                        angleA += 90
+                        while (angleA > 360) {
+                            angleA -= 360
+                        }
+                    }
+                }
+                localLoc = utils.getPointWithAngle(angleA)
+            }
+        }
+        
         return localLoc;
     },
 
@@ -294,7 +471,8 @@ cc.Class({
             insertIdx = tempObj.index
         }
         // console.log(`------------------点击点角度：${touchAngle}`);
-        if (utils.getNotNullOfArray(this.monsterList).length == this.monsterList.length) {
+        if (this.maxMonsters == this.monsterList.length) {
+            // if (utils.getNotNullOfArray(this.monsterList).length == this.monsterList.length) {
             console.log('游戏结束');
             this._gameOver = true;
         }
@@ -331,52 +509,68 @@ cc.Class({
 
         let monsterscript = node.getComponent('monster')
         monsterscript._monsterId = this._count;
+        monsterscript._index = -1;
 
-        let index = Math.floor(Math.random() * MONSTER_TEMPLATE.length)
-        let monster = MONSTER_TEMPLATE[index]
+        let array = [1, 2, 6, 6, 6, 3, 4, 5, 6, 0]
+        let index = Math.floor(Math.random() * array.length)
+        let monster = MONSTER_TEMPLATE[array[index]]
+        monster.skill = null
         monsterscript.init(monster);
-        console.log('生成新对象monsterId：' + this._count, monster.name + ':' + monster.number);
+        console.log('生成新对象Id:' + this._count, monster);
         return monsterscript
     },
-    removeMonster: function (ball) {
-        this._monsterPool.put(ball.node);
+    removeMonster: function (monster) {
+        if (monster.node) {
+            monster.reset();
+            this._monsterPool.put(monster.node);
+        } else {
+            console.error('monster', monster);
+        }
     },
 
     insertMonster: function (posIndex, tempMonster) {
         if (this.monsterList[posIndex]) {
-            for (let index = this.monsterList.length - 1; index > posIndex; index--) {
+            // console.log('this.monsterList', this.monsterList);
+            for (let index = this.monsterList.length; index > posIndex; index--) {
                 if (this.monsterList[index - 1]) {
+                    // console.log(`目标：${this.monsterList[index - 1]._monsterName} : ${this.monsterList[index - 1]._monsterId}`);
                     this.monsterList[index] = this.monsterList[index - 1]
                     this.monsterList[index]._index = index
-                    // console.log(`${index - 1} 后移成功 现在位置为${index}`);
+                    // console.log(` ${index - 1} 后移成功 现在位置为${index}`);
                 } else {
                     // console.log(`当前索引${index}  目标:${index - 1}是否为空${this.monsterList[index - 1] == null}`);
                     continue
                 }
             }
+        } else {
+            console.log(`this.monsterList[posIndex]在位置${posIndex}为空 直接插入`);
         }
         this.monsterList[posIndex] = tempMonster;//存储小球对象到数组
         tempMonster._index = posIndex;
+        // console.log('this.monsterList2', this.monsterList);
     },
 
-    deleteMonster: function (indexArry) {
+    deleteMonsterAtIndex: function (indexArry) {
+        // console.log('deleteMonsterAtIndex-------------');
         for (let index = 0; index < indexArry.length; index++) {
             let monster = this.monsterList[indexArry[index]]
+            // console.log('indexArry[index]', indexArry[index]);
+            // console.log('monster', monster);
             this.removeMonster(monster)
             this.monsterList[indexArry[index]] = null;
         }
 
-        let MArray = utils.getNotNullOfArray(this.monsterList)
-        console.log('MArray', MArray);
+        let results = utils.getNotNullOfArray(this.monsterList)
+        // console.log('getNotNullOfArray', results);
         for (let ii = 0; ii < this.monsterList.length; ii++) {
-            if (MArray[ii]) {
-                MArray[ii]._index = ii;
-                this.monsterList[ii] = MArray[ii]
+            if (results[ii]) {
+                results[ii]._index = ii;
             } else {
-                this.monsterList[ii] = null
+                console.log('被删除的对象');
             }
         }
-        console.log('monsterList', this.monsterList);
+        this.monsterList = results;
+        // console.log('monsterList', this.monsterList);
     },
     update(dt) {
         if (this._canCreateBall) {
